@@ -52,6 +52,7 @@ export interface ServerToClientEvents {
     'player:status_changed': (playerId: string, status: string) => void;
 
     // Connection events
+    'connected': (data: { message: string; socketId: string; timestamp: string }) => void;
     'connection:error': (error: string) => void;
     'connection:reconnected': () => void;
 }

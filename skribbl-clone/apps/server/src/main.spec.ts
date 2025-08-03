@@ -96,7 +96,8 @@ describe('Main Server Application', () => {
 
     // Create HTTP server and initialize Socket.IO
     httpServer = createServer(app);
-    io = initializeSocket(httpServer);
+    const socketResult = initializeSocket(httpServer);
+    io = socketResult.io;
 
     // Start server on random port
     httpServer.listen(0, () => {

@@ -44,7 +44,8 @@ describe('Socket.IO Server Initialization', () => {
       serverPort = typeof address === 'object' && address ? address.port : 3000;
       
       // Initialize Socket.IO server
-      io = initializeSocket(httpServer);
+      const socketResult = initializeSocket(httpServer);
+      io = socketResult.io;
       
       done();
     });
