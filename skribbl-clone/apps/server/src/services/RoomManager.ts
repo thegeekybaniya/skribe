@@ -21,16 +21,16 @@ import { EventEmitter } from 'events';
 export class RoomManager extends EventEmitter {
     // In-memory storage for active rooms - Map provides O(1) lookups
     private rooms: Map<string, Room> = new Map();
-    
+
     // Map room codes to room IDs for quick code-based lookups
     private roomCodes: Map<string, string> = new Map();
-    
+
     // Configuration constants
     private readonly MAX_PLAYERS_PER_ROOM = 8;
     private readonly ROOM_CODE_LENGTH = 6;
     private readonly ROOM_CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
     private readonly ROOM_INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-    
+
     // Cleanup timer reference
     private cleanupTimer: NodeJS.Timeout | null = null;
 
@@ -48,10 +48,10 @@ export class RoomManager extends EventEmitter {
     async createRoom(creatorName: string): Promise<Room> {
         // Generate a unique room code that doesn't already exist
         const roomCode = this.generateUniqueRoomCode();
-        
+
         // Create unique room ID using timestamp and random string
         const roomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
+
         // Create the initial player (room creator)
         const creator: Player = {
             id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -276,7 +276,7 @@ export class RoomManager extends EventEmitter {
         // Character set excluding confusing characters
         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         let code: string;
-        
+
         // Keep generating codes until we find one that's not in use
         do {
             code = '';
@@ -284,7 +284,7 @@ export class RoomManager extends EventEmitter {
                 code += chars.charAt(Math.floor(Math.random() * chars.length));
             }
         } while (this.roomCodes.has(code));
-        
+
         return code;
     }
 
@@ -298,7 +298,7 @@ export class RoomManager extends EventEmitter {
             // Remove from both maps
             this.rooms.delete(roomId);
             this.roomCodes.delete(room.code);
-            
+
             // Emit event to notify other services that room was deleted
             this.emit('roomDeleted', room);
         }
@@ -312,7 +312,7 @@ export class RoomManager extends EventEmitter {
         this.cleanupTimer = setInterval(() => {
             this.cleanupInactiveRooms();
         }, this.ROOM_CLEANUP_INTERVAL);
-        
+
         // Prevent the timer from keeping the process alive during tests
         this.cleanupTimer.unref();
     }
