@@ -2,6 +2,7 @@
   "name": "@skribbl-clone/types",
   "version": "0.0.1",
   "private": true,
+  "type": "commonjs",
   "nx": {
     "tags": [
       "scope:shared",
