@@ -323,6 +323,14 @@ interface ServerToClientEvents {
 - **Function Coverage**: All functions must have test cases
 - **Statement Coverage**: All statements must be executed in tests
 
+### Test Documentation Standards
+- **File Headers**: All test files must include @fileoverview JSDoc headers explaining purpose and requirements coverage
+- **Test Suite Documentation**: Each describe block must have descriptive comments explaining what is being tested
+- **Individual Test Comments**: Each test case must include comments explaining the specific behavior being validated
+- **Mock Data Documentation**: Test fixtures must include comments explaining their purpose and structure
+- **Requirements Traceability**: Tests must include comments linking to specific requirement numbers
+- **Beginner-Friendly Comments**: Test comments must follow the same accessibility standards as production code
+
 ### Testing Tools and Mocks
 - **Jest**: Primary testing framework for both frontend and backend
 - **React Testing Library**: Component testing for React Native
