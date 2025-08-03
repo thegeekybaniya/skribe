@@ -312,6 +312,9 @@ export class RoomManager extends EventEmitter {
         this.cleanupTimer = setInterval(() => {
             this.cleanupInactiveRooms();
         }, this.ROOM_CLEANUP_INTERVAL);
+        
+        // Prevent the timer from keeping the process alive during tests
+        this.cleanupTimer.unref();
     }
 
     /**
