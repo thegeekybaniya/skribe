@@ -18,7 +18,7 @@
   - Write unit tests for type validation and interface contracts
   - _Requirements: 6.3, 6.5_
 
-- [ ] 3. Set up backend server foundation
+- [x] 3. Set up backend server foundation
   - Initialize Node.js Express server with TypeScript in apps/server
   - Configure Socket.IO server with CORS and connection handling
   - Set up project structure with routes, services, socket, and middleware directories
