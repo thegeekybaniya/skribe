@@ -78,8 +78,8 @@ async function startServer(): Promise<void> {
     // Create HTTP server
     const httpServer = createServer(app);
 
-    // Initialize Socket.IO and get the room manager
-    const { roomManager } = initializeSocket(httpServer);
+    // Initialize Socket.IO and get the managers
+    const { roomManager, playerManager } = initializeSocket(httpServer);
 
     // Start the server
     httpServer.listen(config.port, config.host, () => {
@@ -92,6 +92,7 @@ async function startServer(): Promise<void> {
     // Graceful shutdown handling
     process.on('SIGTERM', () => {
       logger.info('SIGTERM received, shutting down gracefully...');
+      playerManager.shutdown();
       roomManager.shutdown();
       httpServer.close(() => {
         logger.info('Server closed');
@@ -101,6 +102,7 @@ async function startServer(): Promise<void> {
 
     process.on('SIGINT', () => {
       logger.info('SIGINT received, shutting down gracefully...');
+      playerManager.shutdown();
       roomManager.shutdown();
       httpServer.close(() => {
         logger.info('Server closed');

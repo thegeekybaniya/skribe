@@ -15,6 +15,7 @@
 
 import { Socket } from 'socket.io';
 import { RoomManager } from '../services/RoomManager';
+import { PlayerManager } from '../services/PlayerManager';
 import {
     safeValidate,
     CreateRoomRequestSchema,
@@ -27,10 +28,12 @@ import { ClientToServerEvents, ServerToClientEvents, SocketData } from '@skribbl
  * Registers all room-related Socket.IO event handlers
  * @param socket - The Socket.IO socket instance
  * @param roomManager - The RoomManager service instance
+ * @param playerManager - The PlayerManager service instance (optional for backward compatibility)
  */
 export function registerRoomHandlers(
     socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>,
-    roomManager: RoomManager
+    roomManager: RoomManager,
+    playerManager?: PlayerManager
 ): void {
     
     /**
@@ -112,8 +115,10 @@ export function registerRoomHandlers(
 
             const { roomCode: validatedRoomCode, playerName: validatedPlayerName } = validation.data;
 
-            // Join the room using RoomManager
-            const { room, player } = await roomManager.joinRoom(validatedRoomCode, validatedPlayerName);
+            // Join the room using PlayerManager if available, otherwise use RoomManager
+            const { room, player } = playerManager 
+                ? await playerManager.joinRoom(validatedRoomCode, validatedPlayerName, socket.id)
+                : await roomManager.joinRoom(validatedRoomCode, validatedPlayerName);
             
             // Store player and room information in socket data
             socket.data.playerId = player.id;
@@ -184,8 +189,10 @@ export function registerRoomHandlers(
 
             logger.info(`Player leaving room: ${socket.data.playerName} leaving room ${roomId}`);
 
-            // Remove player from room using RoomManager
-            const updatedRoom = await roomManager.leaveRoom(playerId);
+            // Remove player from room using PlayerManager if available, otherwise use RoomManager
+            const updatedRoom = playerManager 
+                ? await playerManager.leaveRoom(playerId)
+                : await roomManager.leaveRoom(playerId);
             
             // Leave the socket room
             await socket.leave(roomId);
@@ -225,12 +232,18 @@ export function registerRoomHandlers(
             if (playerId && roomId) {
                 logger.info(`Player disconnected, cleaning up: ${playerName} (${playerId}) from room ${roomId}, reason: ${reason}`);
 
-                // Update player connection status first
-                await roomManager.updatePlayerConnection(playerId, false);
+                // Update player connection status first using PlayerManager if available
+                if (playerManager) {
+                    await playerManager.updatePlayerConnection(playerId, false);
+                } else {
+                    await roomManager.updatePlayerConnection(playerId, false);
+                }
 
                 // If it's a temporary disconnect, we might want to keep the player in the room
                 // For now, we'll remove them completely
-                const updatedRoom = await roomManager.leaveRoom(playerId);
+                const updatedRoom = playerManager 
+                    ? await playerManager.leaveRoom(playerId)
+                    : await roomManager.leaveRoom(playerId);
 
                 // Notify remaining players if room still exists
                 if (updatedRoom) {

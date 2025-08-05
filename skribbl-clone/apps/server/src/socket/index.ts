@@ -12,7 +12,9 @@ import { Server as SocketIOServer } from 'socket.io';
 import config from '../config';
 import logger from '../utils/logger';
 import { RoomManager } from '../services/RoomManager';
+import { PlayerManager } from '../services/PlayerManager';
 import { registerRoomHandlers } from './roomHandlers';
+import { registerPlayerHandlers } from './playerHandlers';
 import { ClientToServerEvents, ServerToClientEvents, SocketData } from '@skribbl-clone/types';
 
 /**
@@ -22,7 +24,7 @@ import { ClientToServerEvents, ServerToClientEvents, SocketData } from '@skribbl
  * @param httpServer - The HTTP server instance to attach Socket.IO to
  * @returns Configured Socket.IO server instance and RoomManager
  */
-export function initializeSocket(httpServer: HttpServer): { io: SocketIOServer; roomManager: RoomManager } {
+export function initializeSocket(httpServer: HttpServer): { io: SocketIOServer; roomManager: RoomManager; playerManager: PlayerManager } {
   logger.info('Initializing Socket.IO server...');
 
   // Create Socket.IO server with CORS configuration and typed events
@@ -39,13 +41,19 @@ export function initializeSocket(httpServer: HttpServer): { io: SocketIOServer; 
 
   // Create RoomManager instance for managing game rooms
   const roomManager = new RoomManager();
+  
+  // Create PlayerManager instance for managing player sessions
+  const playerManager = new PlayerManager(roomManager);
 
   // Handle client connections
   io.on('connection', (socket) => {
     logger.info(`Client connected: ${socket.id}`);
 
     // Register room-related event handlers
-    registerRoomHandlers(socket, roomManager);
+    registerRoomHandlers(socket, roomManager, playerManager);
+    
+    // Register player-related event handlers
+    registerPlayerHandlers(socket, playerManager, roomManager);
 
     // Handle client disconnection
     socket.on('disconnect', (reason) => {
@@ -76,5 +84,5 @@ export function initializeSocket(httpServer: HttpServer): { io: SocketIOServer; 
   });
 
   logger.info('Socket.IO server initialized successfully');
-  return { io, roomManager };
+  return { io, roomManager, playerManager };
 }
