@@ -79,7 +79,7 @@ async function startServer(): Promise<void> {
     const httpServer = createServer(app);
 
     // Initialize Socket.IO and get the managers
-    const { roomManager, playerManager } = initializeSocket(httpServer);
+    const { roomManager, playerManager, gameService, wordService } = initializeSocket(httpServer);
 
     // Start the server
     httpServer.listen(config.port, config.host, () => {
@@ -92,6 +92,8 @@ async function startServer(): Promise<void> {
     // Graceful shutdown handling
     process.on('SIGTERM', () => {
       logger.info('SIGTERM received, shutting down gracefully...');
+      gameService.shutdown();
+      wordService.shutdown();
       playerManager.shutdown();
       roomManager.shutdown();
       httpServer.close(() => {
@@ -102,6 +104,8 @@ async function startServer(): Promise<void> {
 
     process.on('SIGINT', () => {
       logger.info('SIGINT received, shutting down gracefully...');
+      gameService.shutdown();
+      wordService.shutdown();
       playerManager.shutdown();
       roomManager.shutdown();
       httpServer.close(() => {

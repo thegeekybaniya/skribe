@@ -48,7 +48,7 @@
   - Write unit tests for player lifecycle and scoring logic
   - _Requirements: 1.1, 1.3, 1.4, 1.5, 5.1, 5.2, 9.1_
 
-- [ ] 6. Create game flow and turn management
+- [x] 6. Create game flow and turn management
   - Implement GameService for managing overall game state and flow
   - Create turn-based gameplay logic with 60-second timer per round
   - Add round progression and game completion detection

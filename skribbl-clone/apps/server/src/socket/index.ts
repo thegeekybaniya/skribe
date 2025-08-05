@@ -13,8 +13,11 @@ import config from '../config';
 import logger from '../utils/logger';
 import { RoomManager } from '../services/RoomManager';
 import { PlayerManager } from '../services/PlayerManager';
+import { GameService } from '../services/GameService';
+import { WordService } from '../services/WordService';
 import { registerRoomHandlers } from './roomHandlers';
 import { registerPlayerHandlers } from './playerHandlers';
+import { registerGameHandlers, setupGameServiceListeners } from './gameHandlers';
 import { ClientToServerEvents, ServerToClientEvents, SocketData } from '@skribbl-clone/types';
 
 /**
@@ -24,7 +27,7 @@ import { ClientToServerEvents, ServerToClientEvents, SocketData } from '@skribbl
  * @param httpServer - The HTTP server instance to attach Socket.IO to
  * @returns Configured Socket.IO server instance and RoomManager
  */
-export function initializeSocket(httpServer: HttpServer): { io: SocketIOServer; roomManager: RoomManager; playerManager: PlayerManager } {
+export function initializeSocket(httpServer: HttpServer): { io: SocketIOServer; roomManager: RoomManager; playerManager: PlayerManager; gameService: GameService; wordService: WordService } {
   logger.info('Initializing Socket.IO server...');
 
   // Create Socket.IO server with CORS configuration and typed events
@@ -39,11 +42,14 @@ export function initializeSocket(httpServer: HttpServer): { io: SocketIOServer; 
     pingInterval: 25000, // 25 seconds
   });
 
-  // Create RoomManager instance for managing game rooms
+  // Create service instances
   const roomManager = new RoomManager();
-  
-  // Create PlayerManager instance for managing player sessions
   const playerManager = new PlayerManager(roomManager);
+  const wordService = new WordService();
+  const gameService = new GameService(roomManager, playerManager, wordService);
+
+  // Set up GameService event listeners for broadcasting
+  setupGameServiceListeners(gameService, io);
 
   // Handle client connections
   io.on('connection', (socket) => {
@@ -54,6 +60,9 @@ export function initializeSocket(httpServer: HttpServer): { io: SocketIOServer; 
     
     // Register player-related event handlers
     registerPlayerHandlers(socket, playerManager, roomManager);
+
+    // Register game flow event handlers
+    registerGameHandlers(socket, gameService, roomManager, playerManager, wordService);
 
     // Handle client disconnection
     socket.on('disconnect', (reason) => {
@@ -84,5 +93,5 @@ export function initializeSocket(httpServer: HttpServer): { io: SocketIOServer; 
   });
 
   logger.info('Socket.IO server initialized successfully');
-  return { io, roomManager, playerManager };
+  return { io, roomManager, playerManager, gameService, wordService };
 }
