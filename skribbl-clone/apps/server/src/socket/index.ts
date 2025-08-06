@@ -18,6 +18,7 @@ import { WordService } from '../services/WordService';
 import { registerRoomHandlers } from './roomHandlers';
 import { registerPlayerHandlers } from './playerHandlers';
 import { registerGameHandlers, setupGameServiceListeners } from './gameHandlers';
+import { registerDrawingHandlers, setupDrawingServiceListeners } from './drawingHandlers';
 import { ClientToServerEvents, ServerToClientEvents, SocketData } from '@skribbl-clone/types';
 
 /**
@@ -51,6 +52,9 @@ export function initializeSocket(httpServer: HttpServer): { io: SocketIOServer; 
   // Set up GameService event listeners for broadcasting
   setupGameServiceListeners(gameService, io);
 
+  // Set up DrawingService event listeners for canvas management
+  setupDrawingServiceListeners(gameService, roomManager);
+
   // Handle client connections
   io.on('connection', (socket) => {
     logger.info(`Client connected: ${socket.id}`);
@@ -63,6 +67,9 @@ export function initializeSocket(httpServer: HttpServer): { io: SocketIOServer; 
 
     // Register game flow event handlers
     registerGameHandlers(socket, gameService, roomManager, playerManager, wordService);
+
+    // Register drawing-related event handlers
+    registerDrawingHandlers(socket, roomManager, gameService);
 
     // Handle client disconnection
     socket.on('disconnect', (reason) => {
