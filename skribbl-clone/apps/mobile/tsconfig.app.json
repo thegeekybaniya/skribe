@@ -28,5 +28,9 @@
     "src/**/*.test.ts"
   ],
   "include": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
-  "references": []
+  "references": [
+    {
+      "path": "../../packages/types/tsconfig.lib.json"
+    }
+  ]
 }
