@@ -3,26 +3,68 @@
  * Configures Jest for proper test execution without full React Native environment
  */
 
+import 'react-native-gesture-handler/jestSetup';
+import '@testing-library/jest-native/extend-expect';
+
+// Mock the global __fbBatchedBridgeConfig to avoid React Native Testing Library errors
+global.__fbBatchedBridgeConfig = {};
+
+// Mock React Native modules that cause issues in testing
+jest.mock('react-native/Libraries/EventEmitter/NativeEventEmitter');
+
 // Mock React Native completely to avoid native module issues
-jest.mock('react-native', () => ({
-  StyleSheet: {
-    create: (styles: any) => styles,
-    flatten: (style: any) => style,
-  },
-  View: 'View',
-  Text: 'Text',
-  TouchableOpacity: 'TouchableOpacity',
-  ScrollView: 'ScrollView',
-  SafeAreaView: 'SafeAreaView',
-  StatusBar: 'StatusBar',
-  Platform: {
-    OS: 'ios',
-    select: (options: any) => options.ios || options.default,
-  },
-  Dimensions: {
-    get: () => ({ width: 375, height: 667 }),
-  },
-}));
+jest.mock('react-native', () => {
+  return {
+    StyleSheet: {
+      create: (styles: any) => styles,
+      flatten: (style: any) => style,
+    },
+    View: 'View',
+    Text: 'Text',
+    TouchableOpacity: 'TouchableOpacity',
+    TextInput: 'TextInput',
+    ScrollView: 'ScrollView',
+    SafeAreaView: 'SafeAreaView',
+    StatusBar: 'StatusBar',
+    Platform: {
+      OS: 'ios',
+      select: (options: any) => options.ios || options.default,
+    },
+    Dimensions: {
+      get: () => ({ width: 375, height: 667 }),
+    },
+    NativeModules: {
+      PlatformConstants: {
+        getConstants: () => ({
+          forceTouchAvailable: false,
+          osVersion: '14.0',
+          systemName: 'iOS',
+          interfaceIdiom: 'phone',
+        }),
+      },
+    },
+    TurboModuleRegistry: {
+      getEnforcing: (name: string) => {
+        if (name === 'PlatformConstants') {
+          return {
+            getConstants: () => ({
+              forceTouchAvailable: false,
+              osVersion: '14.0',
+              systemName: 'iOS',
+              interfaceIdiom: 'phone',
+            }),
+          };
+        }
+        return null;
+      },
+    },
+    NativeEventEmitter: jest.fn(() => ({
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      removeAllListeners: jest.fn(),
+    })),
+  };
+});
 
 // Mock Expo StatusBar
 jest.mock('expo-status-bar', () => ({
@@ -58,6 +100,9 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('react-native-svg', () => ({
   Svg: 'Svg',
   Path: 'Path',
+  Circle: 'Circle',
+  Line: 'Line',
+  Rect: 'Rect',
   G: 'G',
 }));
 
@@ -104,3 +149,10 @@ global.console = {
   warn: jest.fn(),
   error: jest.fn(),
 };
+
+// Mock global fetch for any network requests
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    json: () => Promise.resolve({}),
+  })
+) as jest.Mock;
