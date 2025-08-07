@@ -115,7 +115,7 @@
   - **Verify and fix**: Run all tests, check build compilation, fix TypeScript errors, ensure no regressions
   - _Requirements: 6.6, 8.1, 8.2_
 
-- [ ] 12. Implement atomic design components - Molecules
+- [x] 12. Implement atomic design components - Molecules
   - Create PlayerCard component showing player name, score, and status
   - Create ChatMessage component with sender info and timestamp
   - Create ColorPicker component for drawing tool color selection
