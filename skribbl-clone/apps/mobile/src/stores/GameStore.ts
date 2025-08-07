@@ -17,11 +17,11 @@ export class GameStore {
   gameState: GameState = GameState.WAITING;
   
   // Current round information
-  currentRound: number = 0;
-  maxRounds: number = 3;
+  currentRound = 0;
+  maxRounds = 3;
   
   // Timer state for drawing rounds (60 seconds per round)
-  timeRemaining: number = 60;
+  timeRemaining = 60;
   timerInterval: NodeJS.Timeout | null = null;
   
   // Current word being drawn (only visible to drawer)
@@ -39,7 +39,7 @@ export class GameStore {
    * Start a new game with the specified number of rounds
    * Transitions from waiting state to playing state
    */
-  startGame(maxRounds: number = 3) {
+  startGame(maxRounds = 3) {
     this.maxRounds = maxRounds;
     this.currentRound = 1;
     this.gameState = GameState.PLAYING;

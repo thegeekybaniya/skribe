@@ -17,16 +17,16 @@ export class ChatStore {
   messages: ChatMessage[] = [];
   
   // Current message being typed by the user
-  currentMessage: string = '';
+  currentMessage = '';
   
   // Whether the chat input is focused
-  isInputFocused: boolean = false;
+  isInputFocused = false;
   
   // Maximum number of messages to keep in memory (for performance)
-  maxMessages: number = 100;
+  maxMessages = 100;
   
   // Whether there are unread messages
-  hasUnreadMessages: boolean = false;
+  hasUnreadMessages = false;
 
   constructor(private rootStore: RootStore) {
     // Make this store observable so React components can react to changes

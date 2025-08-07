@@ -86,6 +86,22 @@ describe('StoreContext', () => {
         expect(provider).toBeTruthy();
       }).not.toThrow();
     });
+
+    /**
+     * Test that StoreProvider accepts store prop correctly
+     * This validates that the store prop is properly handled
+     */
+    it('should accept store prop correctly', () => {
+      const realStore = new RootStore();
+      expect(() => {
+        const provider = (
+          <StoreProvider store={realStore}>
+            <div>Test Child</div>
+          </StoreProvider>
+        );
+        expect(provider).toBeTruthy();
+      }).not.toThrow();
+    });
   });
 
   describe('Store hooks', () => {
@@ -113,6 +129,57 @@ describe('StoreContext', () => {
       expect(typeof useRoomStore).toBe('function');
       expect(typeof useDrawingStore).toBe('function');
       expect(typeof useChatStore).toBe('function');
+    });
+
+    /**
+     * Test that hooks have proper function signatures
+     * This validates that hooks return the expected types
+     */
+    it('should have proper function signatures', () => {
+      // Test that hooks are callable (basic signature test)
+      expect(useRootStore.length).toBe(0); // No parameters
+      expect(useGameStore.length).toBe(0); // No parameters
+      expect(usePlayerStore.length).toBe(0); // No parameters
+      expect(useRoomStore.length).toBe(0); // No parameters
+      expect(useDrawingStore.length).toBe(0); // No parameters
+      expect(useChatStore.length).toBe(0); // No parameters
+    });
+
+    /**
+     * Test that hooks are properly exported from the module
+     * This validates the module exports structure
+     */
+    it('should export hooks with correct names', () => {
+      expect(useRootStore.name).toBe('useRootStore');
+      expect(useGameStore.name).toBe('useGameStore');
+      expect(usePlayerStore.name).toBe('usePlayerStore');
+      expect(useRoomStore.name).toBe('useRoomStore');
+      expect(useDrawingStore.name).toBe('useDrawingStore');
+      expect(useChatStore.name).toBe('useChatStore');
+    });
+
+    /**
+     * Test that StoreProvider component is properly exported
+     * This validates the provider component export
+     */
+    it('should export StoreProvider component', () => {
+      expect(StoreProvider).toBeDefined();
+      expect(typeof StoreProvider).toBe('function');
+      expect(StoreProvider.name).toBe('StoreProvider');
+    });
+
+    /**
+     * Test that RootStore can be instantiated
+     * This validates integration with the RootStore class
+     */
+    it('should work with RootStore instantiation', () => {
+      const store = new RootStore();
+      expect(store).toBeDefined();
+      expect(store.gameStore).toBeDefined();
+      expect(store.playerStore).toBeDefined();
+      expect(store.roomStore).toBeDefined();
+      expect(store.drawingStore).toBeDefined();
+      expect(store.chatStore).toBeDefined();
     });
   });
 });

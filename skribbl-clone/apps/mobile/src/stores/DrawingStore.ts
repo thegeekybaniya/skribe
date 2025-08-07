@@ -14,10 +14,10 @@ import type { RootStore } from './RootStore';
  */
 export class DrawingStore {
   // Current brush color (hex color string)
-  brushColor: string = '#000000';
+  brushColor = '#000000';
   
   // Current brush size (1-20 pixels)
-  brushSize: number = 5;
+  brushSize = 5;
   
   // Available colors for the color picker
   availableColors: string[] = [
@@ -42,10 +42,10 @@ export class DrawingStore {
   currentDrawingData: DrawingData[] = [];
   
   // Whether the canvas is currently being cleared
-  isClearing: boolean = false;
+  isClearing = false;
   
   // Whether drawing tools are enabled (only for current drawer)
-  isDrawingEnabled: boolean = false;
+  isDrawingEnabled = false;
 
   constructor(private rootStore: RootStore) {
     // Make this store observable so React components can react to changes
@@ -113,7 +113,7 @@ export class DrawingStore {
    * Create drawing data object from touch coordinates
    * Used when processing touch events on the canvas
    */
-  createDrawingData(x: number, y: number, prevX?: number, prevY?: number, isDrawing: boolean = true): DrawingData {
+  createDrawingData(x: number, y: number, prevX?: number, prevY?: number, isDrawing = true): DrawingData {
     return {
       x,
       y,

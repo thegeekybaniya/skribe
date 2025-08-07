@@ -20,10 +20,10 @@ export class RoomStore {
   players: Player[] = [];
   
   // Room code for joining (6-character code)
-  roomCode: string = '';
+  roomCode = '';
   
   // Whether the room is at maximum capacity (8 players)
-  isRoomFull: boolean = false;
+  isRoomFull = false;
 
   constructor(private rootStore: RootStore) {
     // Make this store observable so React components can react to changes

@@ -21,10 +21,10 @@ import {
 export class SocketService {
   private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
   private serverUrl: string;
-  private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 5;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
 
-  constructor(serverUrl: string = 'http://localhost:3000') {
+  constructor(serverUrl = 'http://localhost:3000') {
     this.serverUrl = serverUrl;
   }
 

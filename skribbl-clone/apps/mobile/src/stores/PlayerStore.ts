@@ -17,13 +17,13 @@ export class PlayerStore {
   currentPlayer: Player | null = null;
   
   // Player's connection status to the server
-  isConnected: boolean = false;
+  isConnected = false;
   
   // Player's name (set when joining a room)
-  playerName: string = '';
+  playerName = '';
   
   // Whether the player is ready to start the game
-  isReady: boolean = false;
+  isReady = false;
 
   constructor(private rootStore: RootStore) {
     // Make this store observable so React components can react to changes
