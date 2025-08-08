@@ -9,6 +9,21 @@ import '@testing-library/jest-native/extend-expect';
 // Mock the global __fbBatchedBridgeConfig to avoid React Native Testing Library errors
 global.__fbBatchedBridgeConfig = {};
 
+// Set up environment variables to prevent React Native Testing Library issues
+process.env.RN_SRC_EXT = 'e2e.js';
+
+// Mock React Native host components
+const mockComponent = (name: string) => {
+  const MockedComponent = (props: any) => {
+    return React.createElement(name, props, props.children);
+  };
+  MockedComponent.displayName = `Mocked${name}`;
+  return MockedComponent;
+};
+
+// Add React import for JSX
+const React = require('react');
+
 // Mock React Native modules that cause issues in testing
 jest.mock('react-native/Libraries/EventEmitter/NativeEventEmitter');
 
@@ -19,19 +34,50 @@ jest.mock('react-native', () => {
       create: (styles: any) => styles,
       flatten: (style: any) => style,
     },
-    View: 'View',
-    Text: 'Text',
-    TouchableOpacity: 'TouchableOpacity',
-    TextInput: 'TextInput',
-    ScrollView: 'ScrollView',
-    SafeAreaView: 'SafeAreaView',
-    StatusBar: 'StatusBar',
+    View: mockComponent('View'),
+    Text: mockComponent('Text'),
+    TouchableOpacity: mockComponent('TouchableOpacity'),
+    TextInput: mockComponent('TextInput'),
+    ScrollView: mockComponent('ScrollView'),
+    SafeAreaView: mockComponent('SafeAreaView'),
+    StatusBar: mockComponent('StatusBar'),
+    KeyboardAvoidingView: mockComponent('KeyboardAvoidingView'),
+    Modal: mockComponent('Modal'),
+    RefreshControl: mockComponent('RefreshControl'),
     Platform: {
       OS: 'ios',
       select: (options: any) => options.ios || options.default,
     },
     Dimensions: {
       get: () => ({ width: 375, height: 667 }),
+    },
+    PanResponder: {
+      create: jest.fn(() => ({
+        panHandlers: {
+          onStartShouldSetPanResponder: jest.fn(),
+          onMoveShouldSetPanResponder: jest.fn(),
+          onPanResponderGrant: jest.fn(),
+          onPanResponderMove: jest.fn(),
+          onPanResponderRelease: jest.fn(),
+        },
+      })),
+    },
+    Alert: {
+      alert: jest.fn(),
+    },
+    Animated: {
+      Value: jest.fn(() => ({
+        setValue: jest.fn(),
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+      })),
+      timing: jest.fn(() => ({
+        start: jest.fn(),
+      })),
+      sequence: jest.fn(() => ({
+        start: jest.fn(),
+      })),
+      View: mockComponent('Animated.View'),
     },
     NativeModules: {
       PlatformConstants: {
@@ -41,6 +87,16 @@ jest.mock('react-native', () => {
           systemName: 'iOS',
           interfaceIdiom: 'phone',
         }),
+      },
+      SettingsManager: {
+        getConstants: () => ({}),
+        setValues: jest.fn(),
+        deleteValues: jest.fn(),
+      },
+      RNCNetInfo: {
+        getCurrentState: jest.fn(() => Promise.resolve({})),
+        addListener: jest.fn(),
+        removeListeners: jest.fn(),
       },
     },
     TurboModuleRegistry: {
@@ -55,7 +111,16 @@ jest.mock('react-native', () => {
             }),
           };
         }
-        return null;
+        if (name === 'SettingsManager') {
+          return {
+            getConstants: () => ({}),
+            setValues: jest.fn(),
+            deleteValues: jest.fn(),
+          };
+        }
+        return {
+          getConstants: () => ({}),
+        };
       },
     },
     NativeEventEmitter: jest.fn(() => ({
@@ -97,14 +162,26 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 // Mock React Native SVG
-jest.mock('react-native-svg', () => ({
-  Svg: 'Svg',
-  Path: 'Path',
-  Circle: 'Circle',
-  Line: 'Line',
-  Rect: 'Rect',
-  G: 'G',
-}));
+jest.mock('react-native-svg', () => {
+  const React = require('react');
+  const mockComponent = (name: string) => {
+    const MockedComponent = (props: any) => {
+      return React.createElement(name, props, props.children);
+    };
+    MockedComponent.displayName = `Mocked${name}`;
+    return MockedComponent;
+  };
+  
+  return {
+    default: mockComponent('Svg'),
+    Svg: mockComponent('Svg'),
+    Path: mockComponent('Path'),
+    Circle: mockComponent('Circle'),
+    Line: mockComponent('Line'),
+    Rect: mockComponent('Rect'),
+    G: mockComponent('G'),
+  };
+});
 
 // Mock Socket.IO client
 jest.mock('socket.io-client', () => ({
