@@ -20,7 +20,8 @@ import {
     InterServerEvents,
     SocketData
 } from './socket-events';
-import { Player, Room, DrawingData, ChatMessage, RoundResults, GameState, PlayerStatus } from './types';
+import { Player, Room, DrawingData, ChatMessage, GameState, PlayerStatus } from './types';
+// import { RoundResults } from './types'; // Will be used in future tests
 
 /**
  * Test suite for Socket.IO event type definitions

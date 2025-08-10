@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import Svg, { Path, Circle, Line, Rect, SvgProps } from 'react-native-svg';
+import Svg, { Path, Circle, Line, Rect } from 'react-native-svg';
 
 // Define the different icon sizes available
 export type IconSize = 'small' | 'medium' | 'large' | 'xlarge';

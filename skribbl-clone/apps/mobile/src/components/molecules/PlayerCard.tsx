@@ -12,7 +12,7 @@ import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Text } from '../atoms/Text';
 import { Icon } from '../atoms/Icon';
-import { Player, PlayerStatus } from '@skribbl-clone/types';
+import { Player } from '@skribbl-clone/types';
 
 // Props interface for the PlayerCard component
 export interface PlayerCardProps {

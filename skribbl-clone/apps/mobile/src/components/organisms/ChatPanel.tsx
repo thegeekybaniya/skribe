@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { observer } from 'mobx-react-lite';
 import { useStores } from '../../contexts/StoreContext';
-import { ChatMessage as ChatMessageType } from '@skribbl-clone/types';
+// ChatMessage type will be used when implementing message filtering
 import { ChatMessage } from '../molecules/ChatMessage';
 import { Input } from '../atoms/Input';
 import { Button } from '../atoms/Button';
@@ -174,7 +174,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = observer(({
             </Text>
           </View>
         ) : (
-          displayMessages.map((message, index) => (
+          displayMessages.map((message) => (
             <ChatMessage
               key={message.id}
               message={message}

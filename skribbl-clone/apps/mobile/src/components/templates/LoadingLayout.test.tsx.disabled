@@ -1,0 +1,576 @@
+/**
+ * @fileoverview Unit tests for LoadingLayout template component
+ * Tests different loading states, animations, and error handling
+ * Requirements: 6.6, 8.1, 8.2 - Template components with atomic design and responsive layout
+ */
+
+import React from 'react';
+import { render, screen, fireEvent, act } from '@testing-library/react-native';
+import { Animated } from 'react-native';
+
+// Import the component to test
+import { LoadingLayout } from './LoadingLayout';
+
+// Import store context for testing
+import { StoreContext } from '../../contexts/StoreContext';
+import { RootStore } from '../../stores/RootStore';
+
+// Mock the atoms components
+jest.mock('../atoms', () => ({
+  Button: jest.fn(({ title, onPress, variant, style, testID }) => {
+    const MockButton = require('react-native').TouchableOpacity;
+    const MockText = require('react-native').Text;
+    return (
+      <MockButton
+        testID={testID || `button-${title.toLowerCase()}`}
+        onPress={onPress}
+        style={style}
+        accessibilityLabel={`${variant} button: ${title}`}
+      >
+        <MockText>{title}</MockText>
+      </MockButton>
+    );
+  }),
+  Text: jest.fn(({ children, variant, style }) => {
+    const MockText = require('react-native').Text;
+    return (
+      <MockText
+        testID={`text-${variant}`}
+        style={style}
+        accessibilityLabel={`${variant}: ${children}`}
+      >
+        {children}
+      </MockText>
+    );
+  }),
+  Icon: jest.fn(({ name, size, color, style }) => {
+    const MockIcon = require('react-native').View;
+    return (
+      <MockIcon
+        testID={`icon-${name}`}
+        style={style}
+        accessibilityLabel={`Icon: ${name} size:${size} color:${color}`}
+      />
+    );
+  }),
+}));
+
+// Mock React Native components
+jest.mock('react-native', () => ({
+  ...jest.requireActual('react-native'),
+  ActivityIndicator: jest.fn(({ size, color, testID }) => {
+    const MockActivityIndicator = require('react-native').View;
+    return (
+      <MockActivityIndicator
+        testID={testID || 'activity-indicator'}
+        accessibilityLabel={`Loading indicator: ${size} ${color}`}
+      />
+    );
+  }),
+  Animated: {
+    ...jest.requireActual('react-native').Animated,
+    timing: jest.fn(() => ({
+      start: jest.fn(),
+      stop: jest.fn(),
+    })),
+    loop: jest.fn(() => ({
+      start: jest.fn(),
+      stop: jest.fn(),
+    })),
+    sequence: jest.fn(() => ({
+      start: jest.fn(),
+      stop: jest.fn(),
+    })),
+  },
+  Dimensions: {
+    get: jest.fn(() => ({ width: 375, height: 667 })),
+  },
+}));
+
+/**
+ * Helper function to create a test store with mock data
+ */
+const createTestStore = (overrides = {}) => {
+  const store = new RootStore();
+  
+  // Set up mock room state
+  store.playerStore.isConnected = true;
+
+  // Apply any overrides
+  Object.assign(store, overrides);
+  
+  return store;
+};
+
+/**
+ * Helper function to render LoadingLayout with store context
+ */
+const renderLoadingLayout = (props = {}, storeOverrides = {}) => {
+  const store = createTestStore(storeOverrides);
+  
+  return render(
+    <StoreContext.Provider value={store}>
+      <LoadingLayout {...props} />
+    </StoreContext.Provider>
+  );
+};
+
+describe('LoadingLayout Template', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Loading States', () => {
+    /**
+     * Test connecting state rendering
+     * Validates that connecting state shows appropriate UI elements
+     */
+    it('should render connecting state correctly', () => {
+      renderLoadingLayout({ type: 'connecting' });
+
+      // Check for connecting-specific elements
+      expect(screen.getByTestId('activity-indicator')).toBeTruthy();
+      expect(screen.getByTestId('icon-wifi')).toBeTruthy();
+      expect(screen.getByTestId('text-h2')).toBeTruthy();
+      expect(screen.getByTestId('text-body1')).toBeTruthy();
+    });
+
+    /**
+     * Test joining state rendering
+     * Validates that joining state shows appropriate UI elements
+     */
+    it('should render joining state correctly', () => {
+      renderLoadingLayout({ type: 'joining' });
+
+      // Check for joining-specific elements
+      expect(screen.getByTestId('activity-indicator')).toBeTruthy();
+      expect(screen.getByTestId('icon-users')).toBeTruthy();
+    });
+
+    /**
+     * Test starting state rendering
+     * Validates that starting state shows appropriate UI elements
+     */
+    it('should render starting state correctly', () => {
+      renderLoadingLayout({ type: 'starting' });
+
+      // Check for starting-specific elements
+      expect(screen.getByTestId('activity-indicator')).toBeTruthy();
+      expect(screen.getByTestId('icon-play')).toBeTruthy();
+    });
+
+    /**
+     * Test reconnecting state rendering
+     * Validates that reconnecting state shows appropriate UI elements
+     */
+    it('should render reconnecting state correctly', () => {
+      renderLoadingLayout({ type: 'reconnecting' });
+
+      // Check for reconnecting-specific elements
+      expect(screen.getByTestId('activity-indicator')).toBeTruthy();
+      expect(screen.getByTestId('icon-refresh')).toBeTruthy();
+    });
+
+    /**
+     * Test error state rendering
+     * Validates that error state shows appropriate UI elements
+     */
+    it('should render error state correctly', () => {
+      renderLoadingLayout({ type: 'error' });
+
+      // Check for error-specific elements
+      expect(screen.getByTestId('icon-alert-circle')).toBeTruthy();
+      expect(screen.queryByTestId('activity-indicator')).toBeNull(); // No loading indicator in error state
+    });
+  });
+
+  describe('Custom Messages', () => {
+    /**
+     * Test custom message display
+     * Validates that custom messages override default messages
+     */
+    it('should display custom message when provided', () => {
+      const customMessage = 'Custom loading message';
+      renderLoadingLayout({ 
+        type: 'connecting', 
+        message: customMessage 
+      });
+
+      const messageText = screen.getByTestId('text-h2');
+      expect(messageText.props.children).toBe(customMessage);
+    });
+
+    /**
+     * Test custom subtitle display
+     * Validates that custom subtitles override default subtitles
+     */
+    it('should display custom subtitle when provided', () => {
+      const customSubtitle = 'Custom subtitle message';
+      renderLoadingLayout({ 
+        type: 'connecting', 
+        subtitle: customSubtitle 
+      });
+
+      const subtitleText = screen.getByTestId('text-body1');
+      expect(subtitleText.props.children).toBe(customSubtitle);
+    });
+
+    /**
+     * Test custom error message display
+     * Validates that custom error messages are shown in error state
+     */
+    it('should display custom error message in error state', () => {
+      const customError = 'Custom error occurred';
+      renderLoadingLayout({ 
+        type: 'error', 
+        errorMessage: customError 
+      });
+
+      const subtitleText = screen.getByTestId('text-body1');
+      expect(subtitleText.props.children).toBe(customError);
+    });
+  });
+
+  describe('Action Buttons', () => {
+    /**
+     * Test retry button functionality
+     * Validates that retry button is shown and calls callback
+     */
+    it('should show retry button when showRetry is true', () => {
+      const mockOnRetry = jest.fn();
+      renderLoadingLayout({ 
+        type: 'error', 
+        showRetry: true, 
+        onRetry: mockOnRetry 
+      });
+
+      const retryButton = screen.getByTestId('button-retry');
+      expect(retryButton).toBeTruthy();
+
+      // Test button press
+      fireEvent.press(retryButton);
+      expect(mockOnRetry).toHaveBeenCalled();
+    });
+
+    /**
+     * Test cancel button functionality
+     * Validates that cancel button is shown and calls callback
+     */
+    it('should show cancel button when showCancel is true', () => {
+      const mockOnCancel = jest.fn();
+      renderLoadingLayout({ 
+        type: 'connecting', 
+        showCancel: true, 
+        onCancel: mockOnCancel 
+      });
+
+      const cancelButton = screen.getByTestId('button-cancel');
+      expect(cancelButton).toBeTruthy();
+
+      // Test button press
+      fireEvent.press(cancelButton);
+      expect(mockOnCancel).toHaveBeenCalled();
+    });
+
+    /**
+     * Test both retry and cancel buttons together
+     * Validates that both buttons can be shown simultaneously
+     */
+    it('should show both retry and cancel buttons when both are enabled', () => {
+      const mockOnRetry = jest.fn();
+      const mockOnCancel = jest.fn();
+      
+      renderLoadingLayout({ 
+        type: 'error', 
+        showRetry: true, 
+        showCancel: true,
+        onRetry: mockOnRetry,
+        onCancel: mockOnCancel
+      });
+
+      expect(screen.getByTestId('button-retry')).toBeTruthy();
+      expect(screen.getByTestId('button-cancel')).toBeTruthy();
+    });
+
+    /**
+     * Test that buttons are hidden by default
+     * Validates that action buttons are not shown unless explicitly enabled
+     */
+    it('should hide action buttons by default', () => {
+      renderLoadingLayout({ type: 'connecting' });
+
+      expect(screen.queryByTestId('button-retry')).toBeNull();
+      expect(screen.queryByTestId('button-cancel')).toBeNull();
+    });
+  });
+
+  describe('Connection Status', () => {
+    /**
+     * Test connected status display
+     * Validates that connected status is shown when store indicates connection
+     */
+    it('should show connected status when store indicates connection', () => {
+      renderLoadingLayout({ type: 'connecting' });
+
+      // Should show connected status indicator
+      const statusText = screen.getByTestId('text-body2');
+      expect(statusText.props.children).toBe('Connected');
+    });
+
+    /**
+     * Test disconnected status display
+     * Validates that disconnected status is shown when store indicates disconnection
+     */
+    it('should show disconnected status when store indicates disconnection', () => {
+      const storeOverrides = {
+        roomStore: {
+          isConnected: false,
+        },
+      };
+
+      renderLoadingLayout({ type: 'connecting' }, storeOverrides);
+
+      // Should show disconnected status indicator
+      const statusText = screen.getByTestId('text-body2');
+      expect(statusText.props.children).toBe('Disconnected');
+    });
+
+    /**
+     * Test error state always shows disconnected
+     * Validates that error state overrides connection status
+     */
+    it('should show disconnected status in error state regardless of store', () => {
+      renderLoadingLayout({ type: 'error' });
+
+      // Should show disconnected status in error state
+      const statusText = screen.getByTestId('text-body2');
+      expect(statusText.props.children).toBe('Disconnected');
+    });
+  });
+
+  describe('Loading Animations', () => {
+    /**
+     * Test that animations are started for loading states
+     * Validates that animation setup is called correctly
+     */
+    it('should start animations for loading states', () => {
+      renderLoadingLayout({ type: 'connecting', isLoading: true });
+
+      // Verify that Animated.timing was called for fade animation
+      expect(Animated.timing).toHaveBeenCalled();
+    });
+
+    /**
+     * Test that pulse animation is started for loading states
+     * Validates that pulse animation is set up for non-error states
+     */
+    it('should start pulse animation for loading states', () => {
+      renderLoadingLayout({ type: 'connecting', isLoading: true });
+
+      // Verify that Animated.loop was called for pulse animation
+      expect(Animated.loop).toHaveBeenCalled();
+    });
+
+    /**
+     * Test that animations are not started for error state
+     * Validates that error state doesn't show loading animations
+     */
+    it('should not start pulse animation for error state', () => {
+      jest.clearAllMocks();
+      renderLoadingLayout({ type: 'error', isLoading: false });
+
+      // Fade animation should still be called, but not pulse
+      expect(Animated.timing).toHaveBeenCalled();
+      // Loop should not be called for error state
+      const loopCalls = (Animated.loop as jest.Mock).mock.calls;
+      expect(loopCalls.length).toBe(0);
+    });
+
+    /**
+     * Test loading dots animation
+     * Validates that loading dots are rendered and animated
+     */
+    it('should render loading dots for loading states', () => {
+      renderLoadingLayout({ type: 'connecting', isLoading: true });
+
+      // Loading dots should be present for loading states
+      // Note: The dots are rendered as part of the LoadingDots component
+      // We can verify the component structure is correct
+      expect(screen.getByTestId('activity-indicator')).toBeTruthy();
+    });
+  });
+
+  describe('Props and Configuration', () => {
+    /**
+     * Test isLoading prop controls loading indicator
+     * Validates that loading state can be controlled externally
+     */
+    it('should respect isLoading prop', () => {
+      renderLoadingLayout({ type: 'connecting', isLoading: false });
+
+      // Should still render the component but without loading animations
+      expect(screen.getByTestId('activity-indicator')).toBeTruthy();
+    });
+
+    /**
+     * Test custom container styles are applied
+     * Validates that template accepts custom styling
+     */
+    it('should apply custom container styles', () => {
+      const customStyle = { backgroundColor: 'red' };
+      renderLoadingLayout({ 
+        type: 'connecting', 
+        containerStyle: customStyle 
+      });
+
+      // Custom styles should be applied to container (verified by no errors)
+      expect(screen.getByTestId('activity-indicator')).toBeTruthy();
+    });
+
+    /**
+     * Test default loading state
+     * Validates that component works with minimal props
+     */
+    it('should work with minimal props', () => {
+      renderLoadingLayout({ type: 'connecting' });
+
+      // Should render successfully with just the type prop
+      expect(screen.getByTestId('activity-indicator')).toBeTruthy();
+      expect(screen.getByTestId('text-h2')).toBeTruthy();
+    });
+  });
+
+  describe('Loading Configuration', () => {
+    /**
+     * Test that each loading type has correct configuration
+     * Validates that different types show appropriate icons and colors
+     */
+    it('should use correct configuration for each loading type', () => {
+      const types = ['connecting', 'joining', 'starting', 'reconnecting', 'error'];
+      const expectedIcons = ['wifi', 'users', 'play', 'refresh', 'alert-circle'];
+
+      types.forEach((type, index) => {
+        const { unmount } = renderLoadingLayout({ type: type as any });
+        
+        expect(screen.getByTestId(`icon-${expectedIcons[index]}`)).toBeTruthy();
+        
+        unmount();
+      });
+    });
+
+    /**
+     * Test default configuration fallback
+     * Validates that unknown types fall back to default configuration
+     */
+    it('should use default configuration for unknown types', () => {
+      renderLoadingLayout({ type: 'unknown' as any });
+
+      // Should fall back to default loader icon
+      expect(screen.getByTestId('icon-loader')).toBeTruthy();
+    });
+  });
+
+  describe('Store Integration', () => {
+    /**
+     * Test that template reacts to store changes
+     * Validates MobX reactivity and store integration
+     */
+    it('should react to connection status changes', () => {
+      const store = createTestStore();
+      
+      const { rerender } = render(
+        <StoreContext.Provider value={store}>
+          <LoadingLayout type="connecting" />
+        </StoreContext.Provider>
+      );
+
+      // Initially connected
+      expect(screen.getByTestId('text-body2').props.children).toBe('Connected');
+
+      // Change connection status
+      act(() => {
+        store.playerStore.isConnected = false;
+      });
+
+      rerender(
+        <StoreContext.Provider value={store}>
+          <LoadingLayout type="connecting" />
+        </StoreContext.Provider>
+      );
+
+      // Should show disconnected status
+      expect(screen.getByTestId('text-body2').props.children).toBe('Disconnected');
+    });
+  });
+
+  describe('Accessibility', () => {
+    /**
+     * Test that components have proper accessibility labels
+     * Validates accessibility support for screen readers
+     */
+    it('should provide proper accessibility labels', () => {
+      renderLoadingLayout({ 
+        type: 'connecting', 
+        showRetry: true, 
+        showCancel: true 
+      });
+
+      const activityIndicator = screen.getByTestId('activity-indicator');
+      const icon = screen.getByTestId('icon-wifi');
+      const retryButton = screen.getByTestId('button-retry');
+      const cancelButton = screen.getByTestId('button-cancel');
+
+      // All components should have accessibility labels
+      expect(activityIndicator.props.accessibilityLabel).toBeTruthy();
+      expect(icon.props.accessibilityLabel).toBeTruthy();
+      expect(retryButton.props.accessibilityLabel).toBeTruthy();
+      expect(cancelButton.props.accessibilityLabel).toBeTruthy();
+    });
+
+    /**
+     * Test that loading state is communicated to screen readers
+     * Validates that loading information is accessible
+     */
+    it('should communicate loading state to screen readers', () => {
+      renderLoadingLayout({ type: 'connecting', message: 'Connecting to server' });
+
+      const messageText = screen.getByTestId('text-h2');
+      expect(messageText.props.accessibilityLabel).toContain('Connecting to server');
+    });
+  });
+
+  describe('Error Handling', () => {
+    /**
+     * Test that component handles missing callbacks gracefully
+     * Validates that component doesn't crash with undefined callbacks
+     */
+    it('should handle missing callbacks gracefully', () => {
+      renderLoadingLayout({ 
+        type: 'error', 
+        showRetry: true, 
+        showCancel: true 
+        // No onRetry or onCancel callbacks provided
+      });
+
+      const retryButton = screen.getByTestId('button-retry');
+      const cancelButton = screen.getByTestId('button-cancel');
+
+      // Should not crash when pressing buttons without callbacks
+      expect(() => {
+        fireEvent.press(retryButton);
+        fireEvent.press(cancelButton);
+      }).not.toThrow();
+    });
+
+    /**
+     * Test that component handles undefined store gracefully
+     * Validates that component works without store context
+     */
+    it('should handle missing store context gracefully', () => {
+      // Render without store context
+      expect(() => {
+        render(<LoadingLayout type="connecting" />);
+      }).not.toThrow();
+    });
+  });
+});

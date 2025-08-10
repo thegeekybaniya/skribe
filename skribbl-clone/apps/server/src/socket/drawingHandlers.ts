@@ -19,7 +19,7 @@ import { GameService } from '../services/GameService';
 import logger from '../utils/logger';
 
 // Type for our Socket with proper event typing
-type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>;
+type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
 
 /**
  * Interface for tracking drawing throttling per player
@@ -296,7 +296,7 @@ const drawingServices: Map<string, DrawingService> = new Map();
 export function registerDrawingHandlers(
     socket: TypedSocket,
     roomManager: RoomManager,
-    gameService: GameService
+    _gameService: GameService
 ): void {
     // Create a drawing service instance for this socket
     const drawingService = new DrawingService(roomManager);

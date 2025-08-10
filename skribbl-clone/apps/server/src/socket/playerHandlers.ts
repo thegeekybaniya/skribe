@@ -26,7 +26,7 @@ import { ClientToServerEvents, ServerToClientEvents, SocketData, Player } from '
  * @param roomManager - The RoomManager service instance
  */
 export function registerPlayerHandlers(
-    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
     playerManager: PlayerManager,
     roomManager: RoomManager
 ): void {
@@ -143,9 +143,9 @@ export function registerPlayerHandlers(
  * @param roomManager - The RoomManager service instance
  */
 function setupPlayerManagerEventListeners(
-    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
     playerManager: PlayerManager,
-    roomManager: RoomManager
+    _roomManager: RoomManager
 ): void {
 
     /**
@@ -214,7 +214,7 @@ function setupPlayerManagerEventListeners(
     /**
      * Handle correct guess events from PlayerManager
      */
-    playerManager.on('correctGuess', (room, playerId, guess, pointsAwarded) => {
+    playerManager.on('correctGuess', (room, playerId, _guess, _pointsAwarded) => {
         // Only emit to the specific room
         if (socket.data.roomId === room.id) {
             const player = room.players.find((p: Player) => p.id === playerId);
@@ -230,7 +230,7 @@ function setupPlayerManagerEventListeners(
     /**
      * Handle points awarded events from PlayerManager
      */
-    playerManager.on('pointsAwarded', (room, player, pointsAwarded) => {
+    playerManager.on('pointsAwarded', (room, player, _pointsAwarded) => {
         // Only emit to the specific room
         if (socket.data.roomId === room.id) {
             socket.to(room.id).emit('player:score_updated', player.id, player.score);
@@ -250,7 +250,7 @@ function setupPlayerManagerEventListeners(
  * @returns Player and room information if available
  */
 export function getSocketPlayerInfo(
-    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
     playerManager: PlayerManager
 ) {
     const roomId = socket.data.roomId;
@@ -286,7 +286,7 @@ export function getSocketPlayerInfo(
  * @returns Whether the player can perform the action
  */
 export function canPlayerPerformAction(
-    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
     playerManager: PlayerManager,
     action: string
 ): boolean {

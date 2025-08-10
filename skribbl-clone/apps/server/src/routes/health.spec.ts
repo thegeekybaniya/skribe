@@ -170,7 +170,7 @@ describe('Health Routes', () => {
         throw new Error('Memory usage error');
       });
 
-      const response = await request(app)
+      const _response = await request(app)
         .get('/health/detailed')
         .expect(500);
 

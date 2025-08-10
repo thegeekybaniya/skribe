@@ -73,7 +73,9 @@ describe('App Component', () => {
    */
   it('should provide MobX stores through StoreProvider', () => {
     // Mock console.error to catch any provider errors
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {
+      // Mock implementation to suppress console errors during testing
+    });
     
     // Test component instantiation
     const app = <App />;

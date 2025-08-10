@@ -205,7 +205,7 @@ export class WordService extends EventEmitter {
      * @param hintLevel - Level of hint to provide (1-3)
      * @returns Hint information
      */
-    getWordHint(word: string, hintLevel: number = 1): { length: number; category?: string; pattern?: string } {
+    getWordHint(word: string, hintLevel = 1): { length: number; category?: string; pattern?: string } {
         const hint: { length: number; category?: string; pattern?: string } = {
             length: word.length
         };

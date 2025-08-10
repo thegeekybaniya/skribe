@@ -24,6 +24,9 @@ export class PlayerStore {
   
   // Whether the player is ready to start the game
   isReady = false;
+  
+  // Whether the current player is the room host (first player in room)
+  isRoomHost = false;
 
   constructor(private rootStore: RootStore) {
     // Make this store observable so React components can react to changes
@@ -37,6 +40,14 @@ export class PlayerStore {
   setCurrentPlayer(player: Player) {
     this.currentPlayer = player;
     this.playerName = player.name;
+  }
+
+  /**
+   * Set whether the current player is the room host
+   * Called when room host status changes
+   */
+  setIsRoomHost(isHost: boolean) {
+    this.isRoomHost = isHost;
   }
 
   /**
@@ -124,5 +135,6 @@ export class PlayerStore {
     this.isConnected = false;
     this.playerName = '';
     this.isReady = false;
+    this.isRoomHost = false;
   }
 }

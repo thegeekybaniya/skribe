@@ -120,8 +120,8 @@ export class GameService extends EventEmitter {
             this.addGameTimer(roomId, startTimer);
 
             return { success: true, message: 'Game starting...' };
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Failed to start game';
+        } catch (_error) {
+            const errorMessage = _error instanceof Error ? _error.message : 'Failed to start game';
             return { success: false, message: errorMessage };
         }
     }
@@ -168,7 +168,7 @@ export class GameService extends EventEmitter {
             }, 10000); // 10 seconds to view results
 
             return { success: true, finalScores };
-        } catch (error) {
+        } catch {
             return { success: false, finalScores: [] };
         }
     }
@@ -230,7 +230,7 @@ export class GameService extends EventEmitter {
             }
 
             return { isCorrect: true, pointsAwarded, shouldEndRound };
-        } catch (error) {
+        } catch {
             return { isCorrect: false, pointsAwarded: 0, shouldEndRound: false };
         }
     }
@@ -273,7 +273,7 @@ export class GameService extends EventEmitter {
     async forceEndRound(roomId: string): Promise<boolean> {
         try {
             return await this.endCurrentRound(roomId);
-        } catch (error) {
+        } catch {
             return false;
         }
     }
@@ -348,7 +348,7 @@ export class GameService extends EventEmitter {
 
             // Emit game started event
             this.emit('gameStarted', room);
-        } catch (error) {
+        } catch {
             // Handle initialization error
             const room = this.roomManager.getRoomById(roomId);
             if (room) {
@@ -417,7 +417,7 @@ export class GameService extends EventEmitter {
 
             // Start timer updates
             this.startTimerUpdates(roomId);
-        } catch (error) {
+        } catch {
             // Handle round start error
             this.endGame(roomId);
         }
@@ -468,7 +468,7 @@ export class GameService extends EventEmitter {
             this.addGameTimer(roomId, nextRoundTimer);
 
             return true;
-        } catch (error) {
+        } catch {
             return false;
         }
     }

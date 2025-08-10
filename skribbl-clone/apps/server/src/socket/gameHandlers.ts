@@ -28,11 +28,11 @@ import { ClientToServerEvents, ServerToClientEvents, SocketData, GameState, Chat
  * @param wordService - The WordService instance
  */
 export function registerGameHandlers(
-    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
     gameService: GameService,
     roomManager: RoomManager,
-    playerManager: PlayerManager,
-    wordService: WordService
+    _playerManager: PlayerManager,
+    _wordService: WordService
 ): void {
 
     /**
@@ -272,7 +272,7 @@ export function setupGameServiceListeners(gameService: GameService, io: any): vo
     /**
      * Broadcasts when a game ends
      */
-    gameService.on('gameEnded', (room, finalScores, roundHistory) => {
+    gameService.on('gameEnded', (room, finalScores, _roundHistory) => {
         logger.info(`Broadcasting game ended in room ${room.id}`);
         
         io.to(room.id).emit('game:end', finalScores);
@@ -312,7 +312,7 @@ export function setupGameServiceListeners(gameService: GameService, io: any): vo
  * @returns Game information if player is in an active game, null otherwise
  */
 export function getSocketGameInfo(
-    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
     gameService: GameService
 ): any {
     const roomId = socket.data.roomId;

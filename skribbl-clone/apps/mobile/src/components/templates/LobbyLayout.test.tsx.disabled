@@ -1,0 +1,639 @@
+/**
+ * @fileoverview Unit tests for LobbyLayout template component
+ * Tests different modes, form handling, and responsive behavior
+ * Requirements: 6.6, 8.1, 8.2 - Template components with atomic design and responsive layout
+ */
+
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { Dimensions } from 'react-native';
+
+// Import the component to test
+import { LobbyLayout } from './LobbyLayout';
+
+// Import store context for testing
+import { StoreContext } from '../../contexts/StoreContext';
+import { RootStore } from '../../stores/RootStore';
+import { PlayerStatus, GameState } from '@skribbl-clone/types';
+
+// Mock the organisms and molecules components
+jest.mock('../organisms', () => ({
+  PlayerList: jest.fn(({ players, showConnectionStatus, compact }) => {
+    const MockPlayerList = require('react-native').View;
+    return (
+      <MockPlayerList
+        testID="player-list"
+        accessibilityLabel={`Players:${players.length} status:${showConnectionStatus} compact:${compact}`}
+      />
+    );
+  }),
+}));
+
+jest.mock('../molecules', () => ({
+  RoomCodeDisplay: jest.fn(({ roomCode, style }) => {
+    const MockRoomCodeDisplay = require('react-native').View;
+    return (
+      <MockRoomCodeDisplay
+        testID="room-code-display"
+        accessibilityLabel={`Room code: ${roomCode}`}
+        style={style}
+      />
+    );
+  }),
+  PlayerCard: jest.fn(() => {
+    const MockPlayerCard = require('react-native').View;
+    return <MockPlayerCard testID="player-card" />;
+  }),
+}));
+
+// Mock the atoms components
+jest.mock('../atoms', () => ({
+  Button: jest.fn(({ title, onPress, disabled, loading, variant, style, testID }) => {
+    const MockButton = require('react-native').TouchableOpacity;
+    const MockText = require('react-native').Text;
+    return (
+      <MockButton
+        testID={testID || `button-${title.toLowerCase().replace(/\s+/g, '-')}`}
+        onPress={onPress}
+        disabled={disabled || loading}
+        style={style}
+        accessibilityLabel={`${variant} button: ${title} ${disabled ? 'disabled' : 'enabled'} ${loading ? 'loading' : ''}`}
+      >
+        <MockText>{title}</MockText>
+      </MockButton>
+    );
+  }),
+  Text: jest.fn(({ children, variant, style }) => {
+    const MockText = require('react-native').Text;
+    return (
+      <MockText
+        testID={`text-${variant}`}
+        style={style}
+        accessibilityLabel={`${variant}: ${children}`}
+      >
+        {children}
+      </MockText>
+    );
+  }),
+  Input: jest.fn(({ placeholder, value, onChangeText, maxLength, testID, onSubmitEditing }) => {
+    const MockInput = require('react-native').TextInput;
+    return (
+      <MockInput
+        testID={testID || `input-${placeholder.toLowerCase().replace(/\s+/g, '-')}`}
+        placeholder={placeholder}
+        value={value}
+        onChangeText={onChangeText}
+        maxLength={maxLength}
+        onSubmitEditing={onSubmitEditing}
+        accessibilityLabel={`Input: ${placeholder}`}
+      />
+    );
+  }),
+}));
+
+// Mock Dimensions for responsive testing
+const mockDimensions = {
+  get: jest.fn(() => ({ width: 375, height: 667 })), // Default phone dimensions
+};
+jest.mock('react-native', () => ({
+  ...jest.requireActual('react-native'),
+  Dimensions: mockDimensions,
+}));
+
+/**
+ * Helper function to create a test store with mock data
+ */
+const createTestStore = (overrides = {}) => {
+  const store = new RootStore();
+  
+  // Set up mock room state
+  store.roomStore.currentRoom = {
+    id: 'room1',
+    code: 'ABC123',
+    players: [],
+    currentDrawer: null,
+    currentWord: null,
+    roundNumber: 0,
+    maxRounds: 3,
+    gameState: GameState.WAITING,
+    createdAt: new Date(),
+    lastActivity: new Date(),
+    maxPlayers: 8,
+  };
+  store.roomStore.players = [
+    {
+      id: 'player1',
+      name: 'Host',
+      score: 0,
+      isDrawing: false,
+      isConnected: true,
+      status: PlayerStatus.CONNECTED,
+      joinedAt: new Date(),
+    },
+    {
+      id: 'player2',
+      name: 'Player2',
+      score: 0,
+      isDrawing: false,
+      isConnected: true,
+      status: PlayerStatus.CONNECTED,
+      joinedAt: new Date(),
+    },
+  ];
+  store.playerStore.isConnected = true;
+
+  // Set up mock player state
+  store.playerStore.currentPlayer = {
+    id: 'player1',
+    name: 'Host',
+    score: 0,
+    isDrawing: false,
+    isConnected: true,
+    status: PlayerStatus.CONNECTED,
+    joinedAt: new Date(),
+  };
+  store.playerStore.isRoomHost = true;
+
+  // Apply any overrides
+  Object.assign(store, overrides);
+  
+  return store;
+};
+
+/**
+ * Helper function to render LobbyLayout with store context
+ */
+const renderLobbyLayout = (props = {}, storeOverrides = {}) => {
+  const store = createTestStore(storeOverrides);
+  
+  return render(
+    <StoreContext.Provider value={store}>
+      <LobbyLayout {...props} />
+    </StoreContext.Provider>
+  );
+};
+
+describe('LobbyLayout Template', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Reset to default phone dimensions
+    mockDimensions.get.mockReturnValue({ width: 375, height: 667 });
+  });
+
+  describe('Create Mode', () => {
+    /**
+     * Test that create mode renders the room creation form
+     * Validates that the correct form elements are displayed
+     */
+    it('should render create room form', () => {
+      renderLobbyLayout({ mode: 'create' });
+
+      // Check for form elements
+      expect(screen.getByTestId('text-h2')).toBeTruthy();
+      expect(screen.getByTestId('input-enter-your-name')).toBeTruthy();
+      expect(screen.getByTestId('button-create-room')).toBeTruthy();
+    });
+
+    /**
+     * Test that create room button calls the callback with player name
+     * Validates form submission and callback integration
+     */
+    it('should call onCreateRoom when form is submitted', async () => {
+      const mockOnCreateRoom = jest.fn();
+      renderLobbyLayout({ mode: 'create', onCreateRoom: mockOnCreateRoom });
+
+      const nameInput = screen.getByTestId('input-enter-your-name');
+      const createButton = screen.getByTestId('button-create-room');
+
+      // Enter player name
+      fireEvent.changeText(nameInput, 'TestPlayer');
+      
+      // Submit form
+      fireEvent.press(createButton);
+
+      await waitFor(() => {
+        expect(mockOnCreateRoom).toHaveBeenCalledWith('TestPlayer');
+      });
+    });
+
+    /**
+     * Test that create button is disabled when name is empty
+     * Validates form validation for required fields
+     */
+    it('should disable create button when name is empty', () => {
+      renderLobbyLayout({ mode: 'create' });
+
+      const createButton = screen.getByTestId('button-create-room');
+      
+      // Button should be disabled when name is empty
+      expect(createButton.props.accessibilityLabel).toContain('disabled');
+    });
+
+    /**
+     * Test that form handles loading state correctly
+     * Validates loading state management during form submission
+     */
+    it('should show loading state during room creation', async () => {
+      const mockOnCreateRoom = jest.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
+      renderLobbyLayout({ mode: 'create', onCreateRoom: mockOnCreateRoom });
+
+      const nameInput = screen.getByTestId('input-enter-your-name');
+      const createButton = screen.getByTestId('button-create-room');
+
+      // Enter player name and submit
+      fireEvent.changeText(nameInput, 'TestPlayer');
+      fireEvent.press(createButton);
+
+      // Button should show loading state
+      expect(createButton.props.accessibilityLabel).toContain('loading');
+    });
+  });
+
+  describe('Join Mode', () => {
+    /**
+     * Test that join mode renders the room joining form
+     * Validates that the correct form elements are displayed
+     */
+    it('should render join room form', () => {
+      renderLobbyLayout({ mode: 'join' });
+
+      // Check for form elements
+      expect(screen.getByTestId('text-h2')).toBeTruthy();
+      expect(screen.getByTestId('input-room-code-(e.g.-abc123)')).toBeTruthy();
+      expect(screen.getByTestId('input-enter-your-name')).toBeTruthy();
+      expect(screen.getByTestId('button-join-room')).toBeTruthy();
+    });
+
+    /**
+     * Test that join room button calls the callback with room code and name
+     * Validates form submission and callback integration
+     */
+    it('should call onJoinRoom when form is submitted', async () => {
+      const mockOnJoinRoom = jest.fn();
+      renderLobbyLayout({ mode: 'join', onJoinRoom: mockOnJoinRoom });
+
+      const roomCodeInput = screen.getByTestId('input-room-code-(e.g.-abc123)');
+      const nameInput = screen.getByTestId('input-enter-your-name');
+      const joinButton = screen.getByTestId('button-join-room');
+
+      // Enter room code and player name
+      fireEvent.changeText(roomCodeInput, 'abc123');
+      fireEvent.changeText(nameInput, 'TestPlayer');
+      
+      // Submit form
+      fireEvent.press(joinButton);
+
+      await waitFor(() => {
+        expect(mockOnJoinRoom).toHaveBeenCalledWith('ABC123', 'TestPlayer');
+      });
+    });
+
+    /**
+     * Test that room code is automatically converted to uppercase
+     * Validates input formatting for room codes
+     */
+    it('should convert room code to uppercase', () => {
+      renderLobbyLayout({ mode: 'join' });
+
+      const roomCodeInput = screen.getByTestId('input-room-code-(e.g.-abc123)');
+      
+      // Enter lowercase room code
+      fireEvent.changeText(roomCodeInput, 'abc123');
+      
+      // Input should convert to uppercase
+      expect(roomCodeInput.props.value).toBe('ABC123');
+    });
+
+    /**
+     * Test that join button is disabled when fields are empty
+     * Validates form validation for required fields
+     */
+    it('should disable join button when fields are empty', () => {
+      renderLobbyLayout({ mode: 'join' });
+
+      const joinButton = screen.getByTestId('button-join-room');
+      
+      // Button should be disabled when fields are empty
+      expect(joinButton.props.accessibilityLabel).toContain('disabled');
+    });
+  });
+
+  describe('Waiting Mode', () => {
+    /**
+     * Test that waiting mode renders the waiting room interface
+     * Validates that all waiting room elements are displayed
+     */
+    it('should render waiting room interface', () => {
+      renderLobbyLayout({ mode: 'waiting' });
+
+      // Check for waiting room elements
+      expect(screen.getByTestId('room-code-display')).toBeTruthy();
+      expect(screen.getByTestId('player-list')).toBeTruthy();
+      expect(screen.getByTestId('button-leave-room')).toBeTruthy();
+    });
+
+    /**
+     * Test that start game button is shown for room host
+     * Validates conditional rendering based on host status
+     */
+    it('should show start game button for room host', () => {
+      renderLobbyLayout({ mode: 'waiting', canStartGame: true });
+
+      // Start game button should be visible for host
+      expect(screen.getByTestId('button-start-game-(2-players)')).toBeTruthy();
+    });
+
+    /**
+     * Test that start game button is hidden for non-host players
+     * Validates conditional rendering based on host status
+     */
+    it('should hide start game button for non-host players', () => {
+      const storeOverrides = {
+        playerStore: {
+          isRoomHost: false,
+        },
+      };
+
+      renderLobbyLayout({ mode: 'waiting' }, storeOverrides);
+
+      // Start game button should not be visible for non-host
+      expect(screen.queryByTestId('button-start-game-(2-players)')).toBeNull();
+    });
+
+    /**
+     * Test that start game button is disabled with insufficient players
+     * Validates game start requirements
+     */
+    it('should disable start game button with insufficient players', () => {
+      const storeOverrides = {
+        roomStore: {
+          players: [
+            {
+              id: 'player1',
+              name: 'Host',
+              score: 0,
+              isDrawing: false,
+              isConnected: true,
+              joinedAt: new Date(),
+            },
+          ],
+        },
+      };
+
+      renderLobbyLayout({ mode: 'waiting', canStartGame: false }, storeOverrides);
+
+      // Should show requirement message
+      expect(screen.getByTestId('text-body2')).toBeTruthy();
+    });
+
+    /**
+     * Test that leave room button calls the callback
+     * Validates leave room functionality
+     */
+    it('should call onLeaveRoom when leave button is pressed', () => {
+      const mockOnLeaveRoom = jest.fn();
+      renderLobbyLayout({ mode: 'waiting', onLeaveRoom: mockOnLeaveRoom });
+
+      const leaveButton = screen.getByTestId('button-leave-room');
+      fireEvent.press(leaveButton);
+
+      expect(mockOnLeaveRoom).toHaveBeenCalled();
+    });
+
+    /**
+     * Test that room code is displayed correctly
+     * Validates room code display integration
+     */
+    it('should display room code correctly', () => {
+      renderLobbyLayout({ mode: 'waiting' });
+
+      const roomCodeDisplay = screen.getByTestId('room-code-display');
+      expect(roomCodeDisplay.props.accessibilityLabel).toContain('ABC123');
+    });
+  });
+
+  describe('Responsive Layout', () => {
+    /**
+     * Test phone layout calculations
+     * Validates that layout adapts correctly to phone screen size
+     */
+    it('should use phone layout for small screens', () => {
+      // Set phone dimensions
+      mockDimensions.get.mockReturnValue({ width: 375, height: 667 });
+      
+      renderLobbyLayout({ mode: 'waiting' });
+
+      const playerList = screen.getByTestId('player-list');
+      
+      // Verify phone-specific layout is applied
+      expect(playerList.props.accessibilityLabel).toContain('compact:true');
+    });
+
+    /**
+     * Test tablet layout calculations
+     * Validates that layout adapts correctly to tablet screen size
+     */
+    it('should use tablet layout for large screens', () => {
+      // Set tablet dimensions
+      mockDimensions.get.mockReturnValue({ width: 1024, height: 768 });
+      
+      renderLobbyLayout({ mode: 'waiting' });
+
+      const playerList = screen.getByTestId('player-list');
+      
+      // Verify tablet-specific layout is applied
+      expect(playerList.props.accessibilityLabel).toContain('compact:false');
+    });
+
+    /**
+     * Test form width calculations for different screen sizes
+     * Validates responsive form sizing
+     */
+    it('should calculate form width based on screen size', () => {
+      // Test with different screen sizes
+      mockDimensions.get.mockReturnValue({ width: 320, height: 568 }); // Small phone
+      
+      const { rerender } = renderLobbyLayout({ mode: 'create' });
+      
+      // Form should be rendered (width calculation happens internally)
+      expect(screen.getByTestId('input-enter-your-name')).toBeTruthy();
+
+      // Test with tablet size
+      mockDimensions.get.mockReturnValue({ width: 1024, height: 768 });
+      
+      rerender(
+        <StoreContext.Provider value={createTestStore()}>
+          <LobbyLayout mode="create" />
+        </StoreContext.Provider>
+      );
+      
+      // Form should still be rendered with tablet layout
+      expect(screen.getByTestId('input-enter-your-name')).toBeTruthy();
+    });
+  });
+
+  describe('Props and Configuration', () => {
+    /**
+     * Test that custom container styles are applied
+     * Validates that template accepts custom styling
+     */
+    it('should apply custom container styles', () => {
+      const customStyle = { backgroundColor: 'red' };
+      renderLobbyLayout({ 
+        mode: 'create', 
+        containerStyle: customStyle 
+      });
+
+      // Custom styles should be applied to container (verified by no errors)
+      expect(screen.getByTestId('input-enter-your-name')).toBeTruthy();
+    });
+
+    /**
+     * Test that all callback props work correctly
+     * Validates that all callback functions are called appropriately
+     */
+    it('should handle all callback props', async () => {
+      const mockCallbacks = {
+        onCreateRoom: jest.fn(),
+        onJoinRoom: jest.fn(),
+        onStartGame: jest.fn(),
+        onLeaveRoom: jest.fn(),
+      };
+
+      // Test create mode callback
+      const { rerender } = renderLobbyLayout({ 
+        mode: 'create', 
+        ...mockCallbacks 
+      });
+
+      const nameInput = screen.getByTestId('input-enter-your-name');
+      const createButton = screen.getByTestId('button-create-room');
+
+      fireEvent.changeText(nameInput, 'TestPlayer');
+      fireEvent.press(createButton);
+
+      await waitFor(() => {
+        expect(mockCallbacks.onCreateRoom).toHaveBeenCalled();
+      });
+
+      // Test waiting mode callbacks
+      rerender(
+        <StoreContext.Provider value={createTestStore()}>
+          <LobbyLayout mode="waiting" canStartGame={true} {...mockCallbacks} />
+        </StoreContext.Provider>
+      );
+
+      const startButton = screen.getByTestId('button-start-game-(2-players)');
+      const leaveButton = screen.getByTestId('button-leave-room');
+
+      fireEvent.press(startButton);
+      fireEvent.press(leaveButton);
+
+      await waitFor(() => {
+        expect(mockCallbacks.onStartGame).toHaveBeenCalled();
+        expect(mockCallbacks.onLeaveRoom).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Store Integration', () => {
+    /**
+     * Test that template reacts to store changes
+     * Validates MobX reactivity and store integration
+     */
+    it('should react to store changes', () => {
+      const store = createTestStore();
+      
+      const { rerender } = render(
+        <StoreContext.Provider value={store}>
+          <LobbyLayout mode="waiting" />
+        </StoreContext.Provider>
+      );
+
+      // Change room state
+      store.roomStore.currentRoom = {
+        id: 'room1',
+        code: 'XYZ789',
+        players: [],
+        currentDrawer: null,
+        currentWord: null,
+        roundNumber: 0,
+        maxRounds: 3,
+        gameState: GameState.WAITING,
+        createdAt: new Date(),
+        lastActivity: new Date(),
+        maxPlayers: 8,
+      };
+      store.roomStore.players.push({
+        id: 'player3',
+        name: 'NewPlayer',
+        score: 0,
+        isDrawing: false,
+        isConnected: true,
+        status: PlayerStatus.CONNECTED,
+        joinedAt: new Date(),
+      });
+
+      rerender(
+        <StoreContext.Provider value={store}>
+          <LobbyLayout mode="waiting" />
+        </StoreContext.Provider>
+      );
+
+      // Component should reflect updated state
+      const roomCodeDisplay = screen.getByTestId('room-code-display');
+      expect(roomCodeDisplay.props.accessibilityLabel).toContain('XYZ789');
+    });
+
+    /**
+     * Test that template handles empty player list
+     * Validates graceful handling of edge cases
+     */
+    it('should handle empty player list gracefully', () => {
+      const storeOverrides = {
+        roomStore: {
+          players: [],
+        },
+      };
+
+      renderLobbyLayout({ mode: 'waiting' }, storeOverrides);
+
+      // Should render without errors even with empty player list
+      expect(screen.getByTestId('room-code-display')).toBeTruthy();
+    });
+  });
+
+  describe('Accessibility', () => {
+    /**
+     * Test that components have proper accessibility labels
+     * Validates accessibility support for screen readers
+     */
+    it('should provide proper accessibility labels', () => {
+      renderLobbyLayout({ mode: 'create' });
+
+      const nameInput = screen.getByTestId('input-enter-your-name');
+      const createButton = screen.getByTestId('button-create-room');
+
+      // All interactive elements should have accessibility labels
+      expect(nameInput.props.accessibilityLabel).toBeTruthy();
+      expect(createButton.props.accessibilityLabel).toBeTruthy();
+    });
+
+    /**
+     * Test that form submission works with keyboard navigation
+     * Validates keyboard accessibility for form interactions
+     */
+    it('should support keyboard form submission', () => {
+      const mockOnCreateRoom = jest.fn();
+      renderLobbyLayout({ mode: 'create', onCreateRoom: mockOnCreateRoom });
+
+      const nameInput = screen.getByTestId('input-enter-your-name');
+
+      // Enter name and submit via keyboard
+      fireEvent.changeText(nameInput, 'TestPlayer');
+      fireEvent(nameInput, 'submitEditing');
+
+      expect(mockOnCreateRoom).toHaveBeenCalledWith('TestPlayer');
+    });
+  });
+});

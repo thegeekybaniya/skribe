@@ -31,7 +31,7 @@ import { ClientToServerEvents, ServerToClientEvents, SocketData } from '@skribbl
  * @param playerManager - The PlayerManager service instance (optional for backward compatibility)
  */
 export function registerRoomHandlers(
-    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
     roomManager: RoomManager,
     playerManager?: PlayerManager
 ): void {
@@ -266,7 +266,7 @@ export function registerRoomHandlers(
  * @returns Room information if player is in a room, null otherwise
  */
 export function getSocketRoomInfo(
-    socket: Socket<ClientToServerEvents, ServerToClientEvents, {}, SocketData>,
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
     roomManager: RoomManager
 ) {
     const roomId = socket.data.roomId;

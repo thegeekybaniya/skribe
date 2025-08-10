@@ -422,7 +422,7 @@ export class PlayerManager extends EventEmitter {
      * @param room - The room being joined
      * @param socketId - Socket ID for connection tracking
      */
-    private async initializePlayerSession(player: Player, room: Room, socketId: string): Promise<void> {
+    private async initializePlayerSession(player: Player, _room: Room, _socketId: string): Promise<void> {
         // Set initial player status
         player.status = PlayerStatus.CONNECTED;
         player.isConnected = true;
@@ -455,7 +455,7 @@ export class PlayerManager extends EventEmitter {
      * @param room - The room they're in
      * @param socketId - New socket ID
      */
-    private async handlePlayerReconnection(player: Player, room: Room, socketId: string): Promise<void> {
+    private async handlePlayerReconnection(player: Player, room: Room, _socketId: string): Promise<void> {
         // Update player status
         player.status = PlayerStatus.CONNECTED;
         
@@ -474,7 +474,7 @@ export class PlayerManager extends EventEmitter {
      * @param player - The disconnecting player
      * @param room - The room they're in
      */
-    private async handlePlayerDisconnection(player: Player, room: Room): Promise<void> {
+    private async handlePlayerDisconnection(player: Player, _room: Room): Promise<void> {
         player.status = PlayerStatus.DISCONNECTED;
         
         // If this player was drawing, we might want to pause the round

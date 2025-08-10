@@ -137,7 +137,7 @@
   - **Verify and fix**: Run all tests, check build compilation, fix TypeScript errors, ensure no regressions
   - _Requirements: 6.6, 8.1, 8.2_
 
-- [ ] 14. Create screen templates and layouts
+- [x] 14. Create screen templates and layouts
   - Create GameLayout template for main game screen with canvas, chat, and scoreboard
   - Create LobbyLayout template for room creation and joining screens
   - Create LoadingLayout template for loading states and connection status

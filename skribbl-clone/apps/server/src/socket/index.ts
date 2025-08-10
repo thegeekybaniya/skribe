@@ -32,7 +32,7 @@ export function initializeSocket(httpServer: HttpServer): { io: SocketIOServer; 
   logger.info('Initializing Socket.IO server...');
 
   // Create Socket.IO server with CORS configuration and typed events
-  const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents, {}, SocketData>(httpServer, {
+  const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(httpServer, {
     cors: {
       origin: config.socketCorsOrigin,
       methods: ['GET', 'POST'],

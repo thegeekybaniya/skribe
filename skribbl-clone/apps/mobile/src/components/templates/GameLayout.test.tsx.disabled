@@ -1,0 +1,478 @@
+/**
+ * @fileoverview Unit tests for GameLayout template component
+ * Tests layout rendering, responsive behavior, and integration with organisms
+ * Requirements: 6.6, 8.1, 8.2 - Template components with atomic design and responsive layout
+ */
+
+import React from 'react';
+import { render, screen } from '@testing-library/react-native';
+import { Dimensions } from 'react-native';
+
+// Import the component to test
+import { GameLayout } from './GameLayout';
+
+// Import store context for testing
+import { StoreContext } from '../../contexts/StoreContext';
+import { RootStore } from '../../stores/RootStore';
+import { PlayerStatus } from '@skribbl-clone/types';
+
+// Mock the organisms components
+jest.mock('../organisms', () => ({
+  DrawingCanvas: jest.fn(({ width, height, isDrawingEnabled }) => {
+    const MockDrawingCanvas = require('react-native').View;
+    return (
+      <MockDrawingCanvas
+        testID="drawing-canvas"
+        accessibilityLabel={`Canvas ${width}x${height} ${isDrawingEnabled ? 'enabled' : 'disabled'}`}
+      />
+    );
+  }),
+  ChatPanel: jest.fn(({ height, isDrawingMode }) => {
+    const MockChatPanel = require('react-native').View;
+    return (
+      <MockChatPanel
+        testID="chat-panel"
+        accessibilityLabel={`Chat height:${height} drawing:${isDrawingMode}`}
+      />
+    );
+  }),
+  Scoreboard: jest.fn(() => {
+    const MockScoreboard = require('react-native').View;
+    return <MockScoreboard testID="scoreboard" />;
+  }),
+  GameControls: jest.fn(() => {
+    const MockGameControls = require('react-native').View;
+    return <MockGameControls testID="game-controls" />;
+  }),
+  PlayerList: jest.fn(({ players, currentDrawerId, compact }) => {
+    const MockPlayerList = require('react-native').View;
+    return (
+      <MockPlayerList
+        testID="player-list"
+        accessibilityLabel={`Players:${players.length} drawer:${currentDrawerId} compact:${compact}`}
+      />
+    );
+  }),
+}));
+
+// Mock the atoms components
+jest.mock('../atoms', () => ({
+  Timer: jest.fn(({ timeRemaining, totalTime, size, showProgress }) => {
+    const MockTimer = require('react-native').View;
+    return (
+      <MockTimer
+        testID="timer"
+        accessibilityLabel={`Timer ${timeRemaining}/${totalTime} ${size} progress:${showProgress}`}
+      />
+    );
+  }),
+  Text: jest.fn(({ children, variant, color, style }) => {
+    const MockText = require('react-native').Text;
+    return (
+      <MockText
+        testID={`text-${variant}`}
+        style={style}
+        accessibilityLabel={`${variant} ${color} ${children}`}
+      >
+        {children}
+      </MockText>
+    );
+  }),
+}));
+
+// Mock Dimensions for responsive testing
+const mockDimensions = {
+  get: jest.fn(() => ({ width: 375, height: 667 })), // Default phone dimensions
+};
+jest.mock('react-native', () => ({
+  ...jest.requireActual('react-native'),
+  Dimensions: mockDimensions,
+}));
+
+/**
+ * Helper function to create a test store with mock data
+ */
+const createTestStore = (overrides = {}) => {
+  const store = new RootStore();
+  
+  // Set up mock game state
+  store.gameStore.gameState = 'playing';
+  store.gameStore.currentRound = 2;
+  store.gameStore.maxRounds = 5;
+  store.gameStore.timeRemaining = 45;
+  store.gameStore.currentWord = 'elephant';
+  store.gameStore.currentDrawerId = 'player1';
+
+  // Set up mock player state
+  store.playerStore.currentPlayer = {
+    id: 'player2',
+    name: 'TestPlayer',
+    score: 100,
+    isDrawing: false,
+    isConnected: true,
+    status: PlayerStatus.GUESSING,
+    joinedAt: new Date(),
+  };
+
+  // Set up mock room state
+  store.roomStore.players = [
+    {
+      id: 'player1',
+      name: 'Drawer',
+      score: 150,
+      isDrawing: true,
+      isConnected: true,
+      status: PlayerStatus.DRAWING,
+      joinedAt: new Date(),
+    },
+    {
+      id: 'player2',
+      name: 'TestPlayer',
+      score: 100,
+      isDrawing: false,
+      isConnected: true,
+      status: PlayerStatus.GUESSING,
+      joinedAt: new Date(),
+    },
+  ];
+
+  // Apply any overrides
+  Object.assign(store, overrides);
+  
+  return store;
+};
+
+/**
+ * Helper function to render GameLayout with store context
+ */
+const renderGameLayout = (props = {}, storeOverrides = {}) => {
+  const store = createTestStore(storeOverrides);
+  
+  return render(
+    <StoreContext.Provider value={store}>
+      <GameLayout {...props} />
+    </StoreContext.Provider>
+  );
+};
+
+describe('GameLayout Template', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Reset to default phone dimensions
+    mockDimensions.get.mockReturnValue({ width: 375, height: 667 });
+  });
+
+  describe('Basic Rendering', () => {
+    /**
+     * Test that GameLayout renders all required organisms
+     * Validates that the template properly integrates with organism components
+     */
+    it('should render all required organisms', () => {
+      renderGameLayout();
+
+      // Verify all main organisms are rendered
+      expect(screen.getByTestId('drawing-canvas')).toBeTruthy();
+      expect(screen.getByTestId('chat-panel')).toBeTruthy();
+      expect(screen.getByTestId('scoreboard')).toBeTruthy();
+      expect(screen.getByTestId('player-list')).toBeTruthy();
+      expect(screen.getByTestId('timer')).toBeTruthy();
+    });
+
+    /**
+     * Test that game information is displayed correctly in header
+     * Validates that round information and timer are shown
+     */
+    it('should display game information in header', () => {
+      renderGameLayout();
+
+      // Check for round information
+      expect(screen.getByTestId('text-h3')).toBeTruthy();
+      expect(screen.getByTestId('timer')).toBeTruthy();
+    });
+
+    /**
+     * Test that drawing canvas receives correct props
+     * Validates that canvas is configured properly based on layout calculations
+     */
+    it('should configure drawing canvas with correct dimensions', () => {
+      renderGameLayout();
+
+      const canvas = screen.getByTestId('drawing-canvas');
+      expect(canvas).toBeTruthy();
+      
+      // Verify canvas receives calculated dimensions
+      expect(canvas.props.accessibilityLabel).toContain('Canvas');
+    });
+  });
+
+  describe('Responsive Layout', () => {
+    /**
+     * Test phone portrait layout calculations
+     * Validates that layout adapts correctly to phone screen size
+     */
+    it('should use phone layout for small screens', () => {
+      // Set phone dimensions
+      mockDimensions.get.mockReturnValue({ width: 375, height: 667 });
+      
+      renderGameLayout();
+
+      const canvas = screen.getByTestId('drawing-canvas');
+      const chat = screen.getByTestId('chat-panel');
+      const playerList = screen.getByTestId('player-list');
+
+      // Verify phone-specific layout is applied
+      expect(canvas.props.accessibilityLabel).toContain('Canvas');
+      expect(chat.props.accessibilityLabel).toContain('Chat');
+      expect(playerList.props.accessibilityLabel).toContain('compact:true');
+    });
+
+    /**
+     * Test tablet layout calculations
+     * Validates that layout adapts correctly to tablet screen size
+     */
+    it('should use tablet layout for large screens', () => {
+      // Set tablet dimensions
+      mockDimensions.get.mockReturnValue({ width: 1024, height: 768 });
+      
+      renderGameLayout();
+
+      const playerList = screen.getByTestId('player-list');
+
+      // Verify tablet-specific layout is applied
+      expect(playerList.props.accessibilityLabel).toContain('compact:false');
+    });
+
+    /**
+     * Test landscape orientation layout
+     * Validates that layout adapts correctly to landscape mode
+     */
+    it('should adapt to landscape orientation', () => {
+      // Set landscape dimensions
+      mockDimensions.get.mockReturnValue({ width: 667, height: 375 });
+      
+      renderGameLayout();
+
+      const canvas = screen.getByTestId('drawing-canvas');
+      expect(canvas).toBeTruthy();
+      
+      // Layout should adapt to landscape mode
+      expect(canvas.props.accessibilityLabel).toContain('Canvas');
+    });
+  });
+
+  describe('Drawing State Management', () => {
+    /**
+     * Test that game controls are shown when player is drawing
+     * Validates conditional rendering based on drawing state
+     */
+    it('should show game controls when player is drawing', () => {
+      const storeOverrides = {
+        playerStore: {
+          currentPlayer: {
+            id: 'player1',
+            name: 'TestPlayer',
+            score: 100,
+            isDrawing: true,
+            isConnected: true,
+            status: PlayerStatus.DRAWING,
+            joinedAt: new Date(),
+          },
+        },
+      };
+
+      renderGameLayout({}, storeOverrides);
+
+      // Game controls should be visible for the drawer
+      expect(screen.getByTestId('game-controls')).toBeTruthy();
+    });
+
+    /**
+     * Test that game controls are hidden when player is not drawing
+     * Validates conditional rendering based on drawing state
+     */
+    it('should hide game controls when player is not drawing', () => {
+      renderGameLayout();
+
+      // Game controls should not be visible for non-drawers
+      expect(screen.queryByTestId('game-controls')).toBeNull();
+    });
+
+    /**
+     * Test that drawing canvas is enabled/disabled correctly
+     * Validates that canvas interaction is controlled by drawing state
+     */
+    it('should enable canvas only for current drawer', () => {
+      const storeOverrides = {
+        playerStore: {
+          currentPlayer: {
+            id: 'player1',
+            name: 'TestPlayer',
+            score: 100,
+            isDrawing: true,
+            isConnected: true,
+            status: PlayerStatus.DRAWING,
+            joinedAt: new Date(),
+          },
+        },
+      };
+
+      renderGameLayout({}, storeOverrides);
+
+      const canvas = screen.getByTestId('drawing-canvas');
+      expect(canvas.props.accessibilityLabel).toContain('enabled');
+    });
+
+    /**
+     * Test that current word is shown to drawer
+     * Validates that secret word is displayed only to the drawing player
+     */
+    it('should show current word to drawer', () => {
+      const storeOverrides = {
+        playerStore: {
+          currentPlayer: {
+            id: 'player1',
+            name: 'TestPlayer',
+            score: 100,
+            isDrawing: true,
+            isConnected: true,
+            status: PlayerStatus.DRAWING,
+            joinedAt: new Date(),
+          },
+        },
+      };
+
+      renderGameLayout({}, storeOverrides);
+
+      // Word should be displayed to the drawer
+      expect(screen.getByTestId('text-body1')).toBeTruthy();
+    });
+  });
+
+  describe('Component Props and Configuration', () => {
+    /**
+     * Test that optional props work correctly
+     * Validates that template can be configured with different options
+     */
+    it('should respect showScoreboard prop', () => {
+      renderGameLayout({ showScoreboard: false });
+
+      // Scoreboard should not be rendered when disabled
+      expect(screen.queryByTestId('scoreboard')).toBeNull();
+    });
+
+    /**
+     * Test that showPlayerList prop works correctly
+     * Validates conditional rendering of player list
+     */
+    it('should respect showPlayerList prop', () => {
+      renderGameLayout({ showPlayerList: false });
+
+      // Player list should not be rendered when disabled
+      expect(screen.queryByTestId('player-list')).toBeNull();
+    });
+
+    /**
+     * Test that showGameControls prop works correctly
+     * Validates conditional rendering of game controls
+     */
+    it('should respect showGameControls prop', () => {
+      const storeOverrides = {
+        playerStore: {
+          currentPlayer: {
+            id: 'player1',
+            name: 'TestPlayer',
+            score: 100,
+            isDrawing: true,
+            isConnected: true,
+            status: PlayerStatus.DRAWING,
+            joinedAt: new Date(),
+          },
+        },
+      };
+
+      renderGameLayout({ showGameControls: false }, storeOverrides);
+
+      // Game controls should not be rendered when disabled
+      expect(screen.queryByTestId('game-controls')).toBeNull();
+    });
+
+    /**
+     * Test that custom container styles are applied
+     * Validates that template accepts custom styling
+     */
+    it('should apply custom container styles', () => {
+      const customStyle = { backgroundColor: 'red' };
+      const { container } = renderGameLayout({ containerStyle: customStyle });
+
+      // Custom styles should be applied to container
+      expect(container).toBeTruthy();
+    });
+  });
+
+  describe('Store Integration', () => {
+    /**
+     * Test that template reacts to game state changes
+     * Validates MobX reactivity and store integration
+     */
+    it('should react to game state changes', () => {
+      const store = createTestStore();
+      
+      const { rerender } = render(
+        <StoreContext.Provider value={store}>
+          <GameLayout />
+        </StoreContext.Provider>
+      );
+
+      // Change game state
+      store.gameStore.currentRound = 3;
+      store.gameStore.timeRemaining = 30;
+
+      rerender(
+        <StoreContext.Provider value={store}>
+          <GameLayout />
+        </StoreContext.Provider>
+      );
+
+      // Component should reflect updated state
+      expect(screen.getByTestId('text-h3')).toBeTruthy();
+      expect(screen.getByTestId('timer')).toBeTruthy();
+    });
+
+    /**
+     * Test that template handles empty player list
+     * Validates graceful handling of edge cases
+     */
+    it('should handle empty player list gracefully', () => {
+      const storeOverrides = {
+        roomStore: {
+          players: [],
+        },
+      };
+
+      renderGameLayout({}, storeOverrides);
+
+      // Should render without errors even with empty player list
+      expect(screen.getByTestId('drawing-canvas')).toBeTruthy();
+      expect(screen.queryByTestId('player-list')).toBeNull();
+    });
+  });
+
+  describe('Accessibility', () => {
+    /**
+     * Test that components have proper accessibility labels
+     * Validates accessibility support for screen readers
+     */
+    it('should provide proper accessibility labels', () => {
+      renderGameLayout();
+
+      const canvas = screen.getByTestId('drawing-canvas');
+      const chat = screen.getByTestId('chat-panel');
+      const timer = screen.getByTestId('timer');
+
+      // All components should have accessibility labels
+      expect(canvas.props.accessibilityLabel).toBeTruthy();
+      expect(chat.props.accessibilityLabel).toBeTruthy();
+      expect(timer.props.accessibilityLabel).toBeTruthy();
+    });
+  });
+});

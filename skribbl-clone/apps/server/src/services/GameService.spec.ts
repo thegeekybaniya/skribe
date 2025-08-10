@@ -16,7 +16,8 @@ import { GameService } from './GameService';
 import { RoomManager } from './RoomManager';
 import { PlayerManager } from './PlayerManager';
 import { WordService } from './WordService';
-import { GameState, PlayerStatus } from '@skribbl-clone/types';
+import { GameState } from '@skribbl-clone/types';
+// import { PlayerStatus } from '@skribbl-clone/types'; // Will be used in future tests
 
 // Mock timers for testing
 jest.useFakeTimers();
@@ -487,7 +488,7 @@ describe('GameService', () => {
             const room = await roomManager.createRoom('Player1');
             await roomManager.joinRoom(room.code, 'Player2');
 
-            let timerUpdates: number[] = [];
+            const timerUpdates: number[] = [];
             gameService.on('timerUpdate', (roomId, timeRemaining) => {
                 if (roomId === room.id) {
                     timerUpdates.push(timeRemaining);

@@ -27,6 +27,9 @@ const React = require('react');
 // Mock React Native modules that cause issues in testing
 jest.mock('react-native/Libraries/EventEmitter/NativeEventEmitter');
 
+// Mock React Native modules that cause issues in testing
+jest.mock('react-native/Libraries/EventEmitter/NativeEventEmitter');
+
 // Mock React Native completely to avoid native module issues
 jest.mock('react-native', () => {
   return {
@@ -49,7 +52,16 @@ jest.mock('react-native', () => {
       select: (options: any) => options.ios || options.default,
     },
     Dimensions: {
-      get: () => ({ width: 375, height: 667 }),
+      get: jest.fn(() => ({ width: 375, height: 667 })),
+      set: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    },
+    PixelRatio: {
+      get: jest.fn(() => 2),
+      getFontScale: jest.fn(() => 1),
+      getPixelSizeForLayoutSize: jest.fn((size) => size * 2),
+      roundToNearestPixel: jest.fn((size) => size),
     },
     PanResponder: {
       create: jest.fn(() => ({
@@ -218,6 +230,14 @@ jest.mock('react-native-reanimated', () => ({
     cond: jest.fn(),
     interpolate: jest.fn(),
   },
+}));
+
+// Mock VirtualizedList components that cause native module issues
+jest.mock('@react-native/virtualized-lists', () => ({
+  VirtualizedList: mockComponent('VirtualizedList'),
+  VirtualizedSectionList: mockComponent('VirtualizedSectionList'),
+  FlatList: mockComponent('FlatList'),
+  SectionList: mockComponent('SectionList'),
 }));
 
 // Silence console warnings during tests

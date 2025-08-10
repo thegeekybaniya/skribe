@@ -16,7 +16,8 @@
 
 import { PlayerManager } from './PlayerManager';
 import { RoomManager } from './RoomManager';
-import { GameState, PlayerStatus } from '@skribbl-clone/types';
+import { PlayerStatus } from '@skribbl-clone/types';
+// import { GameState } from '@skribbl-clone/types'; // Will be used in future tests
 
 describe('PlayerManager', () => {
     let playerManager: PlayerManager;

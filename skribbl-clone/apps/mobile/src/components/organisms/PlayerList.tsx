@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { observer } from 'mobx-react-lite';
 import { useStores } from '../../contexts/StoreContext';
-import { Player, PlayerStatus } from '@skribbl-clone/types';
+import { Player } from '@skribbl-clone/types';
 import { PlayerCard } from '../molecules/PlayerCard';
 import { Input } from '../atoms/Input';
 import { Button } from '../atoms/Button';

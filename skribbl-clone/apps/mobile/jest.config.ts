@@ -4,7 +4,7 @@ module.exports = {
   preset: 'react-native',
   moduleFileExtensions: ['ts', 'js', 'html', 'tsx', 'jsx'],
   setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '\\.svg$': '@nx/expo/plugins/jest/svg-mock',
   },
   transformIgnorePatterns: [
